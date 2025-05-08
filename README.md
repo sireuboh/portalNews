@@ -1,6 +1,6 @@
-# flutter_application_1
+# flutter - portal news
 
-A new Flutter project.
+A Flutter project.
 
 ## Getting Started
 
