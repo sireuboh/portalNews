@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'formlogin.dart';
 import 'formregist.dart';
 import 'main.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class ProfilPage extends StatefulWidget {
   @override
@@ -10,48 +11,31 @@ class ProfilPage extends StatefulWidget {
 }
 
 class _ProfilPageState extends State<ProfilPage> {
-  var content;
-  late SharedPreferences prefs; // Gunakan late untuk deklarasi
+  late Future<String?> _loginFuture;
 
   @override
   void initState() {
     super.initState();
-    startLaunch(); // Memastikan data diproses saat halaman pertama kali dimuat
+    _loginFuture = getUsername();
   }
 
-  // Fungsi untuk memeriksa status login
-  Future<void> startLaunch() async {
-    prefs =
-        await SharedPreferences.getInstance(); // Mengambil instance SharedPreferences
-    var login = prefs.getString('login'); // Mengambil data login
-    if (login != null) {
-      setState(() {
-        content = sudahLogin(login); // Menampilkan halaman sudah login
-      });
-    } else {
-      setState(() {
-        content = belumLogin(); // Menampilkan halaman belum login
-      });
-    }
+  Future<String?> getUsername() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('username');
   }
 
-  // Fungsi untuk logout
   Future<void> logOut() async {
-    print('logout');
-    prefs =
-        await SharedPreferences.getInstance(); // Pastikan instance prefs ada
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(
-        builder: (_) {
-          prefs.remove("login"); // Menghapus data login dari SharedPreferences
-          return MyApp(initialPage: 2); // Mengarahkan kembali ke halaman utama
-        },
-      ),
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('username');
+    await prefs.remove('token');
+    Fluttertoast.showToast(msg: 'Berhasil logout');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => MyApp(initialPage: 2)),
     );
   }
 
-  // Tampilan jika pengguna belum login
-  belumLogin() {
+  Widget belumLogin() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -67,7 +51,7 @@ class _ProfilPageState extends State<ProfilPage> {
           onPressed: () {
             Navigator.push(
               context,
-              MaterialPageRoute(builder: (context) => LoginPage()),
+              MaterialPageRoute(builder: (_) => LoginPage()),
             );
           },
           child: Text('Masuk', style: TextStyle(color: Colors.white)),
@@ -88,7 +72,7 @@ class _ProfilPageState extends State<ProfilPage> {
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => RegistPage()),
+                  MaterialPageRoute(builder: (_) => RegistPage()),
                 );
               },
             ),
@@ -98,8 +82,7 @@ class _ProfilPageState extends State<ProfilPage> {
     );
   }
 
-  // Tampilan jika pengguna sudah login
-  sudahLogin(String username) {
+  Widget sudahLogin(String username) {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
@@ -110,16 +93,11 @@ class _ProfilPageState extends State<ProfilPage> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(color: Colors.blue, width: 3),
           ),
-          child: Text(
-            username,
-            style: TextStyle(fontSize: 20),
-          ), // Menampilkan nama pengguna
+          child: Text(username, style: TextStyle(fontSize: 20)),
         ),
         IconButton(
           icon: Icon(Icons.exit_to_app),
-          onPressed: () {
-            logOut(); // Memanggil logOut() saat keluar
-          },
+          onPressed: logOut,
           color: Colors.blue,
         ),
       ],
@@ -128,6 +106,18 @@ class _ProfilPageState extends State<ProfilPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: content); // Menampilkan konten sesuai status login
+    return FutureBuilder<String?>(
+      future: _loginFuture,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        }
+
+        final username = snapshot.data;
+        return Center(
+          child: username != null ? sudahLogin(username) : belumLogin(),
+        );
+      },
+    );
   }
 }

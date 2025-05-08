@@ -3,7 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'home.dart';
+
 import 'main.dart';
 
 class LoginPage extends StatefulWidget {
@@ -20,18 +20,13 @@ class _LoginPageState extends State<LoginPage> {
   @override
   void initState() {
     super.initState();
-    fToast = FToast();
-    fToast.init(context);
+    fToast = FToast()..init(context);
   }
 
   Future<void> loginUser(String username, String password) async {
-    setState(() {
-      isLoading = true;
-    });
+    setState(() => isLoading = true);
 
-    final url = Uri.parse(
-      "https://e-commerce-store.glitch.me/login",
-    ); // Ganti jika perlu
+    final url = Uri.parse("https://e-commerce-store.glitch.me/login");
 
     try {
       final response = await http.post(
@@ -40,35 +35,36 @@ class _LoginPageState extends State<LoginPage> {
         body: jsonEncode({"username": username, "password": password}),
       );
 
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> data = json.decode(response.body);
+      final statusCode = response.statusCode;
+      final body = jsonDecode(response.body);
 
-        if (data['status'] == true) {
-          final user = data['data']['user'];
-          final token = data['data']['token'];
+      if (statusCode == 200 && body['status'] == true) {
+        final user = body['data']['user'];
+        final token = body['data']['token'];
 
-          SharedPreferences prefs = await SharedPreferences.getInstance();
-          await prefs.setString('username', user['username']);
-          await prefs.setString('token', token);
+        SharedPreferences prefs = await SharedPreferences.getInstance();
+        await prefs.setString('username', user['username']);
+        await prefs.setString('token', token);
 
-          showToast("Login berhasil");
-          return Navigator.pop(context);
-        } else {
-          showToast("Login gagal: ${data['message'] ?? 'Data tidak valid'}");
-        }
+        showToast("Login berhasil", isSuccess: true);
+
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => MyApp(initialPage: 0)),
+        );
       } else {
-        showToast("Terjadi kesalahan server: ${response.statusCode}");
+        showToast(
+          "Login gagal: ${body['message'] ?? 'Username atau password salah'}",
+        );
       }
     } catch (e) {
-      showToast("Terjadi kesalahan jaringan: $e");
+      showToast("Kesalahan jaringan: $e");
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      setState(() => isLoading = false);
     }
   }
 
-  void showToast(String message) {
+  void showToast(String message, {bool isSuccess = false}) {
     fToast.showToast(
       gravity: ToastGravity.BOTTOM,
       toastDuration: Duration(seconds: 2),
@@ -76,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
         padding: EdgeInsets.symmetric(horizontal: 24.0, vertical: 12.0),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(25.0),
-          color: Colors.blueAccent,
+          color: isSuccess ? Colors.green : Colors.redAccent,
         ),
         child: Text(message, style: TextStyle(color: Colors.white)),
       ),
@@ -114,27 +110,19 @@ class _LoginPageState extends State<LoginPage> {
                     : Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          TextButton(
-                            onPressed: () {
-                              Navigator.pop(context);
-                            },
-                            style: TextButton.styleFrom(
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.grey,
                               padding: EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 12,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
                             ),
-                            child: Text(
-                              "Back",
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: Text("Back"),
                           ),
                           SizedBox(width: 20),
-                          TextButton(
+                          ElevatedButton(
                             onPressed: () {
                               final username = userController.text.trim();
                               final password = passController.text.trim();
@@ -144,20 +132,14 @@ class _LoginPageState extends State<LoginPage> {
                                 loginUser(username, password);
                               }
                             },
-                            style: TextButton.styleFrom(
+                            style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.blue,
                               padding: EdgeInsets.symmetric(
                                 horizontal: 20,
                                 vertical: 12,
                               ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
                             ),
-                            child: Text(
-                              "Login",
-                              style: TextStyle(color: Colors.white),
-                            ),
+                            child: Text("Login"),
                           ),
                         ],
                       ),
